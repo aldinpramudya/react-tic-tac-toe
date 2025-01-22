@@ -8,28 +8,21 @@ function Square({ value, onSquareClick }) {
 
 }
 
-function Board() {
-
-  // Array Simpan Value (Lifting State Up)
-  const [squares, setSquares] = useState(Array(9).fill(null));
-  // State untuk menentukan giliran pemain 
-  const [xIsNext, setXIsNext] = useState(true);
-
+// eslint-disable-next-line react/prop-types
+function Board({xIsNext, squares, onPlay}) {
   // Function untuk menghandle click pada square
-  function handelClick(i) {
-    if (squares[i] || calculateWinner(squares)) {
+  function handleClick(i) {
+    if (calculateWinner(squares) || squares[i]) {
       return;
     }
-
-    // Membuat array baru untuk menyimpan value square
-    const newSquares = squares.slice();
-    if (xIsNext === true) {
-      newSquares[i] = 'X';
+    // eslint-disable-next-line react/prop-types
+    const nextSquares = squares.slice();
+    if (xIsNext) {
+      nextSquares[i] = "X";
     } else {
-      newSquares[i] = 'O';
+      nextSquares[i] = "O";
     }
-    setSquares(newSquares);
-    setXIsNext(!xIsNext);
+    onPlay(nextSquares);
   }
 
   const winner = calculateWinner(squares);
@@ -44,17 +37,69 @@ function Board() {
     <>
       <div className='status'>{status}</div>
       <div className='board'>
-        <Square value={squares[0]} onSquareClick={() => handelClick(0)} />
-        <Square value={squares[1]} onSquareClick={() => handelClick(1)} />
-        <Square value={squares[2]} onSquareClick={() => handelClick(2)} />
-        <Square value={squares[3]} onSquareClick={() => handelClick(3)} />
-        <Square value={squares[4]} onSquareClick={() => handelClick(4)} />
-        <Square value={squares[5]} onSquareClick={() => handelClick(5)} />
-        <Square value={squares[6]} onSquareClick={() => handelClick(6)} />
-        <Square value={squares[7]} onSquareClick={() => handelClick(7)} />
-        <Square value={squares[8]} onSquareClick={() => handelClick(8)} />
+        <Square value={squares[0]} onSquareClick={() => handleClick(0)} />
+        <Square value={squares[1]} onSquareClick={() => handleClick(1)} />
+        <Square value={squares[2]} onSquareClick={() => handleClick(2)} />
+        <Square value={squares[3]} onSquareClick={() => handleClick(3)} />
+        <Square value={squares[4]} onSquareClick={() => handleClick(4)} />
+        <Square value={squares[5]} onSquareClick={() => handleClick(5)} />
+        <Square value={squares[6]} onSquareClick={() => handleClick(6)} />
+        <Square value={squares[7]} onSquareClick={() => handleClick(7)} />
+        <Square value={squares[8]} onSquareClick={() => handleClick(8)} />
       </div>
     </>
+  );
+}
+
+// Lifting State Up (Fitur Time Travel) (State yang paling di atas)
+function Game(){
+  // State untuk menentukan giliran pemain X terlebih dahulu
+  const [xIsNext, setXIsNext] = useState(true);
+  const [history, setHistory] = useState([Array(9).fill(null)]);
+  const [currentMove, setCurrentMove] = useState(0);
+  const currentSquares = history[currentMove];
+
+  function jumpTo(nextMove){
+    setCurrentMove(nextMove);
+    setXIsNext(nextMove % 2 === 0);
+  }
+
+  function handlePlay(nextSquares){
+    const nextHistory = [...history.slice(0, currentMove + 1), nextSquares];
+    setHistory(nextHistory);
+    setCurrentMove(nextHistory.length - 1);
+    setXIsNext(!xIsNext);
+
+  }
+
+  const moves = history.map((squares, move) => {
+    let description = '';
+    if(move > 0){
+      description = 'Go to move #' + move;
+    } else {
+      description = 'Go to game start';
+    }
+
+    return (
+      <li key={move}>
+        <button onClick={() => jumpTo(move)}>{description}</button>
+      </li>
+    );
+  })
+
+  return(
+    <div className="game">
+      <div className="game-board">
+        {/* State Game Board */}
+        <Board xIsNext={xIsNext} squares={currentSquares} onPlay={handlePlay} />
+      </div>
+      {/* Game Info Div */}
+      <div className="game-info">
+        <ol>
+          {moves}
+        </ol>
+      </div>
+    </div>
   );
 }
 
@@ -78,4 +123,6 @@ function calculateWinner(squares) {
   return false;
 }
 
-export default Board
+// Export Board (State Paling Teratas)
+// State diangakat dari Board ke Game untuk fitur Time Travel
+export default Game;
